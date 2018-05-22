@@ -485,6 +485,38 @@ export default class extends Component {
     }
   }
 
+  scrollToFirst = (animated = false) => {
+    this.setState({
+      index: 0,
+    }, () => {
+      if (this.state.total < 2) return
+      const position = 0;
+  
+      if (Platform.OS !== 'ios') {
+        this.scrollView && this.scrollView[animated ? 'setPage' : 'setPageWithoutAnimation'](position)
+      } else {
+        this.scrollView && this.scrollView.scrollTo({ position, position, animated })
+      }
+
+      // update scroll state
+      this.internals.isScrolling = true
+      this.setState({
+        autoplayEnd: false
+      })
+  
+      // trigger onScrollEnd manually in android
+      if (!animated || Platform.OS !== 'ios') {
+        setImmediate(() => {
+          this.onScrollEnd({
+            nativeEvent: {
+              position: position
+            }
+          })
+        })
+      }
+    })
+  }
+
   scrollViewPropOverrides = () => {
     const props = this.props
     let overrides = {}
@@ -543,11 +575,24 @@ export default class extends Component {
       marginTop: 3,
       marginBottom: 3
     }, this.props.dotStyle ]} />
-    for (let i = 0; i < this.state.total; i++) {
-      dots.push(i === this.state.index
-        ? React.cloneElement(ActiveDot, {key: i})
-        : React.cloneElement(Dot, {key: i})
-      )
+    if (this.state.index < 0) {
+      this.setState({
+        index: 0,
+      }, () => {
+        for (let i = 0; i < this.state.total; i++) {
+          dots.push(i === this.state.index
+            ? React.cloneElement(ActiveDot, {key: i})
+            : React.cloneElement(Dot, {key: i})
+          )
+        }
+      })
+    } else {
+      for (let i = 0; i < this.state.total; i++) {
+        dots.push(i === this.state.index
+          ? React.cloneElement(ActiveDot, {key: i})
+          : React.cloneElement(Dot, {key: i})
+        )
+      }
     }
 
     return (
